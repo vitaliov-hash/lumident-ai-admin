@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#e8def7"><meta name="description" content="LumiDent — цифровой администратор стоматологической клиники. Вопросы об услугах и заявка на приём.">
+  <title>LumiDent — AI-администратор стоматологии</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='18' fill='%237f63ad'/%3E%3Cpath d='M19 15c-6 0-9 5-9 12 0 9 5 14 7 23 1 5 6 5 8 1l7-13 7 13c2 4 7 4 8-1 2-9 7-14 7-23 0-7-3-12-9-12-5 0-8 2-13 2s-8-2-13-2z' fill='white'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/chat-window.css">
+</head>
+<body>
+  <header class="topbar wrap">
+    <a class="brand" href="#top" aria-label="LumiDent — на главную"><span class="brand-mark">✦</span><span>LumiDent<small>стоматология</small></span></a>
+    <nav aria-label="Главное меню"><a href="#services">Услуги</a><a href="#about">О клинике</a><a href="#contacts">Контакты</a></nav>
+    <a class="header-link" href="#chat">Задать вопрос <span>↗</span></a>
+  </header>
+  <main id="top">
+    <section class="hero wrap">
+      <div class="hero-copy"><div class="eyebrow"><span class="pulse"></span> Всегда на связи</div><h1>Забота начинается <em>с разговора</em></h1><p>Спросите об услугах, стоимости и материалах. Цифровой администратор LumiDent поможет оставить заявку на приём.</p><a href="#chat" class="primary-btn">Начать диалог <span>↗</span></a><div class="hero-note">Ответим на ваши вопросы в любое время</div></div>
+      <div class="hero-art"><div class="art-orbit orbit-one"></div><div class="art-orbit orbit-two"></div><img src="/tooth.png" alt="Светлая иллюстрация зуба в сиреневых оттенках"><div class="art-badge">улыбка начинается<br><strong>здесь ✦</strong></div></div>
+    </section>
+    <section class="quick-info wrap" id="about" aria-label="О клинике"><div><span class="info-icon">◷</span><span><b>Каждый день</b><small>09:00–21:00</small></span></div><div><span class="info-icon">⌖</span><span><b>Москва</b><small>ул. Сиреневая, 18</small></span></div><div><span class="info-icon">✧</span><span><b>Бережный подход</b><small>План лечения после осмотра</small></span></div></section>
+    <section class="experience wrap" id="chat"><div class="section-heading"><div><div class="kicker">ВАШ ВОПРОС — НАШ ОТВЕТ</div><h2>Поговорим о вашей улыбке?</h2><p>Узнайте о лечении, ценах и оставьте заявку на запись.</p></div><div class="mode" id="mode" style="display:none"><span class="pulse"></span> Подключение…</div></div>
+      <div class="chat-card"><div class="chat-header"><div class="avatar">✦</div><div><b>Администратор LumiDent</b><small>Готов помочь с вашим вопросом</small></div></div><div class="chat-messages" id="messages" role="log" aria-live="polite"><div class="message bot"><div class="bubble">Здравствуйте! Я цифровой администратор LumiDent. Расскажу об услугах и ценах или помогу оставить заявку на приём. О чём хотите узнать?</div><time>Сейчас</time></div></div><div class="suggestions" id="suggestions"><button type="button" data-menu="services">Услуги</button><button type="button" data-menu="guarantees">Гарантия</button><button type="button" data-question="Хочу записаться на приём">Записаться</button></div><form id="chat-form" class="chat-form"><label class="sr-only" for="question">Ваше сообщение</label><input id="question" name="question" placeholder="Напишите ваш вопрос…" maxlength="2000" autocomplete="off" required><button type="submit" aria-label="Отправить сообщение">↗</button></form><p class="chat-footnote">Информация не заменяет очную консультацию врача.</p></div>
+    </section>
+    <section class="services wrap" id="services"><div class="section-heading"><div><div class="kicker">ЗАБОТА НА КАЖДОМ ЭТАПЕ</div><h2>Популярные услуги</h2></div><p>Точную стоимость врач определит после осмотра и диагностики.</p></div><div class="service-grid"><article><span class="service-icon">✧</span><h3>Консультация</h3><p>Знакомство с врачом и план лечения.</p><div class="service-bottom"><strong>от 1 500 ₽</strong><button data-question="Расскажите о консультации стоматолога">Спросить ↗</button></div></article><article><span class="service-icon">✦</span><h3>Лечение кариеса</h3><p>Восстановление здоровья и естественной красоты зуба.</p><div class="service-bottom"><strong>от 7 000 ₽</strong><button data-question="Сколько стоит лечение кариеса?">Спросить ↗</button></div></article><article><span class="service-icon">◌</span><h3>Профгигиена</h3><p>Забота о чистоте и свежести улыбки.</p><div class="service-bottom"><strong>от 5 500 ₽</strong><button data-question="Сколько стоит профессиональная гигиена?">Спросить ↗</button></div></article></div></section>
+    <section class="closing wrap"><div><span>✦ LumiDent</span><h2>Ваш путь к улыбке<br>начинается с вопроса</h2></div><a href="#chat">Написать администратору ↗</a></section>
+  </main>
+  <footer id="contacts"><div class="wrap footer-grid"><div><div class="footer-brand">✦ LumiDent</div><p>Стоматология с вниманием<br>к каждой улыбке.</p></div><div><b>Контакты</b><a href="tel:+74951234567">+7 (495) 123-45-67</a><span>Москва, ул. Сиреневая, 18</span><span>Ежедневно, 09:00–21:00</span></div><div><b>Навигация</b><a href="#services">Услуги</a><a href="#chat">Задать вопрос</a><a href="https://lumident.example">lumident.example</a></div></div><div class="wrap footer-note">Информация не заменяет очную консультацию врача.</div></footer>
+  <script src="/app.js" defer></script>
+</body></html>

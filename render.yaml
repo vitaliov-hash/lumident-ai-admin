@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: lumident-ai-admin
+    runtime: node
+    plan: free
+    buildCommand: ""
+    startCommand: "node server.js"
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: LLM_BASE_URL
+        value: https://api.deepseek.com
+      - key: LLM_MODEL
+        value: deepseek-chat
+      - key: DEEPSEEK_API_KEY
+        sync: false
