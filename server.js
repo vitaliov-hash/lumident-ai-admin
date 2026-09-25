@@ -17,6 +17,25 @@ const prompt = fs.readFileSync(path.join(root, 'SYSTEM_PROMPT.md'), 'utf8');
 const bookings = new Map();
 const requests = [];
 const phone = '+7 (495) 123-45-67';
+const monthNames = { января: 0, февраля: 1, марта: 2, апреля: 3, мая: 4, июня: 5, июля: 6, августа: 7, сентября: 8, октября: 9, ноября: 10, декабря: 11 };
+
+function normalizeTimePreference(input) {
+  const text = input.trim().toLowerCase();
+  const dayMatch = text.match(/(?:^|\D)(\d{1,2})(?:-?го|-?е)?(?:\s+(?:числа|день))?/);
+  const hourMatch = text.match(/на\s*(\d{1,2})/) || text.match(/(?:в\s*)?(\d{1,2})\s*(?:ч|час(?:а|ов)?)/);
+  if (!dayMatch) return input.trim();
+  const now = new Date();
+  let year = now.getFullYear();
+  let month = now.getMonth();
+  const monthMatch = Object.keys(monthNames).find(name => text.includes(name));
+  if (monthMatch) month = monthNames[monthMatch];
+  const day = Number(dayMatch[1]);
+  if (!monthMatch && new Date(year, month, day) < new Date(year, month, now.getDate())) month += 1;
+  if (month > 11) { month = 0; year += 1; }
+  const hour = hourMatch && Number(hourMatch[1]) <= 23 ? Number(hourMatch[1]) : null;
+  const date = `${String(day).padStart(2, '0')}.${String(month + 1).padStart(2, '0')}.${year}`;
+  return hour === null ? date : `${date} в ${String(hour).padStart(2, '0')}:00`;
+}
 
 function json(res, status, payload) {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
@@ -55,9 +74,9 @@ function bookingReply(session, input) {
   if (!b) b = { stage: 'name' };
   else if (b.stage === 'name') { b.name = input.trim(); b.stage = 'service'; }
   else if (b.stage === 'service') { b.service = input.trim(); b.stage = 'time'; }
-  else if (b.stage === 'time') { b.time = input.trim(); b.stage = 'phone'; }
+  else if (b.stage === 'time') { b.time = normalizeTimePreference(input); b.stage = 'phone'; }
   else if (b.stage === 'phone') {
-    const match = input.match(/\+?[\d\s()\-]{10,}/);
+    const match = input.match(/\+?[\d\s()\-]{9,}/);
     b.phone = match ? match[0].trim() : 'не указан';
     b.stage = 'confirm';
   }
