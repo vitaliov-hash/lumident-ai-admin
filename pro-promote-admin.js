@@ -7,6 +7,10 @@ for (const line of (fs.existsSync(path.join(root, '.env')) ? fs.readFileSync(pat
   const match = line.match(/^([A-Z_]+)=(.*)$/);
   if (match && process.env[match[1]] === undefined) process.env[match[1]] = match[2].replace(/^['"]|['"]$/g, '');
 }
+if (!process.env.DATABASE_URL && fs.existsSync('/etc/secrets/DATABASE_URL')) {
+  const secretFile = fs.readFileSync('/etc/secrets/DATABASE_URL', 'utf8').trim();
+  process.env.DATABASE_URL = (secretFile.match(/^DATABASE_URL=(.*)$/m)?.[1] || secretFile).replace(/^['"]|['"]$/g, '').trim();
+}
 if (!process.env.DATABASE_URL || !process.env.ADMIN_EMAIL) {
   console.error('Set DATABASE_URL and ADMIN_EMAIL in the private environment.');
   process.exitCode = 1;
