@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>LumiDent — вход администратора</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/pro.css">
+  <link rel="stylesheet" href="/features.css">
+</head>
+<body>
+  <header class="topbar wrap">
+    <a class="brand" href="/user"><span class="brand-mark">✦</span><span>LumiDent<small>стоматология</small></span></a>
+    <label class="sr-only" for="language-switcher">Language</label>
+    <select id="language-switcher" aria-label="Language"><option value="ru">Русский</option><option value="en">English</option></select>
+    <button id="logout" hidden>Выйти</button>
+  </header>
+  <main class="wrap pro-main">
+    <h1 data-i18n="pageTitle">Вход в LumiDent для администратора</h1>
+    <p id="notice" role="status" aria-live="polite"></p>
+    <section id="auth" class="pro-card">
+      <h2 data-i18n="loginTitle">Вход администратора</h2>
+      <form id="auth-form" autocomplete="off">
+        <label><span data-i18n="emailLabel">Электронная почта</span><input name="login-id" type="email" autocomplete="off" required></label>
+        <label><span data-i18n="passwordLabel">Пароль</span><input name="login-secret" type="password" autocomplete="off" required></label>
+        <button type="submit" data-i18n="loginButton">Войти</button>
+      </form>
+    </section>
+    <section id="account-security" class="pro-card" hidden>
+      <h2 data-i18n="securityTitle">Безопасность аккаунта</h2>
+      <form id="password-form" autocomplete="off">
+        <label><span data-i18n="currentPassword">Текущий пароль</span><input name="currentPassword" type="password" autocomplete="off" required></label>
+        <label><span data-i18n="newPassword">Новый пароль (от 12 символов)</span><input name="newPassword" type="password" minlength="12" maxlength="128" autocomplete="new-password" required></label>
+        <label><span data-i18n="confirmPassword">Повторите новый пароль</span><input name="confirmPassword" type="password" minlength="12" maxlength="128" autocomplete="new-password" required></label>
+        <button type="submit" data-i18n="changePassword">Изменить пароль</button>
+      </form>
+      <small data-i18n="sessionsNotice">После смены пароля остальные активные сеансы будут завершены.</small>
+    </section>
+    <section id="admin" class="pro-card" hidden>
+      <h2 data-i18n="knowledgeTitle">База знаний клиники</h2>
+      <form id="knowledge-form">
+        <label><span data-i18n="hoursRu">Часы работы (русский)</span><input id="hours" maxlength="120" required></label>
+        <label><span data-i18n="hoursEn">Opening hours (English)</span><input id="hours-en" maxlength="120" required></label>
+        <div id="admin-services"></div>
+        <button type="button" id="add-service" data-i18n="addService">Добавить услугу</button>
+        <button type="submit" data-i18n="saveChanges">Сохранить изменения</button>
+      </form>
+    </section>
+  </main>
+  <script src="/pro-app.js" defer></script>
+</body>
+</html>

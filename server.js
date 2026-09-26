@@ -9,6 +9,10 @@ for (const line of (fs.existsSync(path.join(root, '.env')) ? fs.readFileSync(pat
   const match = line.match(/^([A-Z_]+)=(.*)$/);
   if (match && process.env[match[1]] === undefined) process.env[match[1]] = match[2].replace(/^['"]|['"]$/g, '');
 }
+if (!process.env.DATABASE_URL && fs.existsSync('/etc/secrets/DATABASE_URL')) {
+  const secretFile = fs.readFileSync('/etc/secrets/DATABASE_URL', 'utf8').trim();
+  process.env.DATABASE_URL = (secretFile.match(/^DATABASE_URL=(.*)$/m)?.[1] || secretFile).replace(/^['"]|['"]$/g, '').trim();
+}
 const key = process.env.DEEPSEEK_API_KEY?.trim();
 const baseUrl = (process.env.LLM_BASE_URL || 'https://api.deepseek.com').replace(/\/$/, '');
 const model = process.env.LLM_MODEL || 'deepseek-chat';
@@ -17,6 +21,20 @@ const prompt = fs.readFileSync(path.join(root, 'SYSTEM_PROMPT.md'), 'utf8');
 const bookings = new Map();
 const requests = [];
 const phone = '+7 (495) 123-45-67';
+const localClinicKnowledge = {
+  hours: 'Ежедневно, 09:00–21:00', hours_en: 'Daily, 09:00–21:00',
+  services: [
+    ['Консультация', 'Знакомство с врачом и план лечения.', 'Consultation', 'Meet the dentist and discuss a treatment plan.', 1500],
+    ['Профессиональная гигиена', 'Профессиональная чистка зубов.', 'Professional cleaning', 'Professional teeth cleaning.', 5500],
+    ['Лечение кариеса', 'Лечение кариеса после осмотра.', 'Cavity treatment', 'Cavity treatment after an examination.', 7000],
+    ['Лечение одного канала', 'Эндодонтическое лечение.', 'Root canal treatment', 'Endodontic treatment.', 9000],
+    ['Винир', 'Эстетическое восстановление зуба.', 'Veneer', 'Aesthetic restoration of a tooth.', 35000],
+    ['Коронка из диоксида циркония', 'Ортопедическое восстановление.', 'Zirconia crown', 'Prosthetic restoration.', 45000],
+    ['Имплантация одного зуба', 'Имплантация после диагностики.', 'Single-tooth implant', 'Dental implant placement after diagnostics.', 85000],
+    ['Удаление зуба', 'Удаление по показаниям врача.', 'Tooth extraction', 'Extraction when clinically indicated.', 4000],
+    ['Отбеливание', 'Профессиональное отбеливание.', 'Teeth whitening', 'Professional teeth whitening.', 18000]
+  ].map(([name, description, name_en, description_en, price_from], id) => ({ id: id + 1, name, description, name_en, description_en, price_from }))
+};
 const monthNames = { января: 0, февраля: 1, марта: 2, апреля: 3, мая: 4, июня: 5, июля: 6, августа: 7, сентября: 8, октября: 9, ноября: 10, декабря: 11 };
 
 function normalizeTimePreference(input) {
@@ -56,8 +74,17 @@ function normalizeMessages(messages) {
   if (clean.at(-1).role !== 'user') return null;
   return clean;
 }
-function demoReply(input) {
+function demoReply(input, locale = 'ru') {
   const q = input.toLowerCase();
+  if (locale === 'en') {
+    if (/cavity|caries/.test(q)) return 'Cavity treatment starts at 7,000 ₽. The exact cost is determined by the dentist after an examination and diagnostics.';
+    if (/hour|open|working|time/.test(q)) return 'The clinic is open daily from 09:00 to 21:00 (Moscow time).';
+    if (/fill|material|warrant|guarantee/.test(q)) return 'Filling materials include 3M and Tokuyama. Fillings are covered for up to 2 years; exact terms depend on the treatment and the dentist’s recommendations.';
+    if (/parking|park/.test(q)) return 'I do not have confirmed information about parking. Please check with the clinic at +7 (495) 123-45-67.';
+    if (/super.?glue|glue|reattach/.test(q)) return 'Please do not use superglue in your mouth. It can injure tissue and complicate treatment. Contact a dentist promptly.';
+    if (/borscht|weather|football|exchange rate/.test(q)) return 'I can help with questions about LumiDent, dentistry, services, prices, materials, and opening hours.';
+    return 'I do not have confirmed information about that. Please contact the clinic at +7 (495) 123-45-67.';
+  }
   if (/суперкле|сам прикле|оторвал.*зуб/.test(q)) return 'Пожалуйста, не приклеивайте зуб суперклеем: это может повредить ткани и затруднить лечение. Как действует гарантия в такой ситуации, сможет уточнить врач после осмотра. Свяжитесь с клиникой по телефону ' + phone + '.';
   if (/парковк|бесплатно ночью/.test(q)) return 'У меня нет точной информации о парковке, поэтому не хочу вводить вас в заблуждение. Уточните, пожалуйста, у администратора по телефону ' + phone + '.';
   if (/борщ|погод|футбол|курс валют/.test(q)) return 'Я помогаю с вопросами о стоматологии и клинике LumiDent. Могу рассказать об услугах, ценах или помочь оставить заявку на приём.';
@@ -96,14 +123,14 @@ function bookingReply(session, input) {
   if (b.stage === 'phone') return `Подтверждаю выбранные дату и время: ${b.time}. Оставьте, пожалуйста, телефон для связи на случай форс-мажорных изменений.`;
   return `Проверьте заявку:\nИмя: ${b.name}\nТелефон: ${b.phone}\nУслуга: ${b.service}\nДата и время: ${b.time}\n\nВсё верно? Ответьте «да», чтобы отправить заявку.`;
 }
-async function liveReply(messages) {
+async function liveReply(messages, locale = 'ru') {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 12000);
   try {
     const response = await fetch(baseUrl + '/chat/completions', {
       method: 'POST', signal: controller.signal,
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ model, temperature: 0.3, messages: [{ role: 'system', content: prompt }, ...messages] })
+      body: JSON.stringify({ model, temperature: 0.3, messages: [{ role: 'system', content: locale === 'en' ? prompt.replace('Отвечай по-русски, доброжелательно и профессионально.', 'Отвечай доброжелательно и профессионально на английском языке.') : prompt }, ...messages] })
     });
     if (!response.ok) throw new Error('provider_error');
     const result = await response.json();
@@ -115,6 +142,9 @@ async function liveReply(messages) {
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   if (req.method === 'GET' && url.pathname === '/api/status') return json(res, 200, { mode: key ? 'live' : 'demo' });
+  if (req.method === 'GET' && url.pathname === '/api/knowledge') return json(res, 200, localClinicKnowledge);
+  if (req.method === 'GET' && url.pathname === '/api/auth/me') return json(res, 200, { user: null });
+  if (req.method === 'POST' && url.pathname === '/api/auth/login') return json(res, 503, { error: 'Вход администратора доступен после подключения базы данных.' });
   if (req.method === 'POST' && url.pathname === '/api/chat') {
     let raw = '';
     for await (const chunk of req) { raw += chunk; if (raw.length > 80000) return json(res, 413, { error: 'Сообщение слишком длинное.' }); }
@@ -122,20 +152,23 @@ const server = http.createServer(async (req, res) => {
     try { body = JSON.parse(raw); } catch { return json(res, 400, { error: 'Не удалось прочитать сообщение.' }); }
     const messages = normalizeMessages(body?.messages);
     if (!messages) return json(res, 400, { error: 'Введите вопрос, чтобы продолжить.' });
-    const session = typeof body.sessionId === 'string' && /^[a-zA-Z0-9-]{1,100}$/.test(body.sessionId) ? body.sessionId : 'anonymous';
+    const locale = body.locale === 'en' ? 'en' : 'ru';
     const latest = messages.at(-1).content;
-    const booking = bookingReply(session, latest);
-    if (booking) return json(res, 200, { reply: booking, mode: key ? 'live' : 'demo' });
-    if (!key) return json(res, 200, { reply: demoReply(latest), mode: 'demo' });
-    try { return json(res, 200, { reply: await liveReply(messages), mode: 'live' }); }
-    catch { return json(res, 200, { reply: demoReply(latest), mode: 'demo' }); }
+    if (!key) return json(res, 200, { reply: demoReply(latest, locale), mode: 'demo' });
+    try { return json(res, 200, { reply: await liveReply(messages, locale), mode: 'live' }); }
+    catch { return json(res, 200, { reply: demoReply(latest, locale), mode: 'demo' }); }
   }
   if (req.method === 'GET') {
-    const relative = url.pathname === '/' ? '/index.html' : url.pathname;
+    const relative = url.pathname === '/' || url.pathname === '/user' ? '/index.html' : url.pathname === '/admin' ? '/pro.html' : url.pathname;
     const target = path.resolve(publicDir, '.' + relative);
     if (!target.startsWith(publicDir + path.sep)) return json(res, 404, { error: 'Страница не найдена.' });
     return sendFile(res, target);
   }
   return json(res, 405, { error: 'Метод не поддерживается.' });
 });
-server.listen(Number(process.env.PORT || 3000), host, () => console.log('LumiDent ready on http://' + host + ':' + (process.env.PORT || 3000)));
+if (process.env.DATABASE_URL) {
+  const { startProServer } = await import('./pro-server.js');
+  await startProServer({ host, port: Number(process.env.PORT || 3000), publicDir, baseUrl, model, key, prompt });
+} else {
+  server.listen(Number(process.env.PORT || 3000), host, () => console.log('LumiDent prototype ready on http://' + host + ':' + (process.env.PORT || 3000)));
+}

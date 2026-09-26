@@ -1,0 +1,7 @@
+#language-switcher{border:1px solid #d6c9e8;border-radius:12px;background:#fff;color:#554077;padding:10px 12px;font:inherit;font-size:14px}
+.voice-btn{flex:0 0 49px;width:49px;height:49px;border:1px solid #ded2ed;border-radius:15px;background:#f4eff9;color:#7656a7;font-size:19px}
+.voice-btn:disabled{opacity:.55;cursor:not-allowed}
+.voice-btn.listening{background:#e8dafa;box-shadow:0 0 0 3px #d8c7ea88}
+.speak-btn{align-self:flex-start;margin:5px 0 0 3px;padding:3px 8px;border:1px solid #e6def0;border-radius:10px;background:#fff;color:#72569e;font-size:14px}
+#notice{min-height:1.5em;color:#7555a4}
+@media(max-width:600px){#language-switcher{padding:8px;font-size:12px}.voice-btn{flex-basis:42px;width:42px;height:46px}}
