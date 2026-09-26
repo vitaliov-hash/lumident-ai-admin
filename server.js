@@ -9,6 +9,10 @@ for (const line of (fs.existsSync(path.join(root, '.env')) ? fs.readFileSync(pat
   const match = line.match(/^([A-Z_]+)=(.*)$/);
   if (match && process.env[match[1]] === undefined) process.env[match[1]] = match[2].replace(/^['"]|['"]$/g, '');
 }
+if (!process.env.DATABASE_URL && fs.existsSync('/etc/secrets/DATABASE_URL')) {
+  const secretFile = fs.readFileSync('/etc/secrets/DATABASE_URL', 'utf8').trim();
+  process.env.DATABASE_URL = (secretFile.match(/^DATABASE_URL=(.*)$/m)?.[1] || secretFile).replace(/^['"]|['"]$/g, '').trim();
+}
 const key = process.env.DEEPSEEK_API_KEY?.trim();
 const baseUrl = (process.env.LLM_BASE_URL || 'https://api.deepseek.com').replace(/\/$/, '');
 const model = process.env.LLM_MODEL || 'deepseek-chat';
