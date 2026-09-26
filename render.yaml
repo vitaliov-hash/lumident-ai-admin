@@ -3,7 +3,7 @@ services:
     name: lumident-ai-admin
     runtime: node
     plan: free
-    buildCommand: ""
+    buildCommand: "npm install"
     startCommand: "node server.js"
     envVars:
       - key: HOST
@@ -13,4 +13,6 @@ services:
       - key: LLM_MODEL
         value: deepseek-chat
       - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: DATABASE_URL
         sync: false

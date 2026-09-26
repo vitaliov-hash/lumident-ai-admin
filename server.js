@@ -138,4 +138,9 @@ const server = http.createServer(async (req, res) => {
   }
   return json(res, 405, { error: 'Метод не поддерживается.' });
 });
-server.listen(Number(process.env.PORT || 3000), host, () => console.log('LumiDent ready on http://' + host + ':' + (process.env.PORT || 3000)));
+if (process.env.DATABASE_URL) {
+  const { startProServer } = await import('./pro-server.js');
+  await startProServer({ host, port: Number(process.env.PORT || 3000), publicDir, baseUrl, model, key, prompt });
+} else {
+  server.listen(Number(process.env.PORT || 3000), host, () => console.log('LumiDent prototype ready on http://' + host + ':' + (process.env.PORT || 3000)));
+}
