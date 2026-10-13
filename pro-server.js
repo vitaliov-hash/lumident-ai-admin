@@ -4,6 +4,7 @@ import path from 'node:path';
 import { randomBytes, createHash, scrypt as scryptCallback, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
 import { query, migrate, pool } from './pro-db.js';
+import { transcribeAudio, voiceModelAvailable } from './local-stt.js';
 
 const scrypt = promisify(scryptCallback);
 const maxAge = 30 * 24 * 60 * 60 * 1000;
@@ -100,6 +101,13 @@ export async function startProServer(config) {
         if (origin.host !== host) return respond(res, 403, { error: 'Запрос с другого сайта запрещён.' });
       }
       if (url.pathname === '/api/status') return respond(res, 200, { mode: config.key ? 'live' : 'unavailable', pro: true });
+      if (url.pathname === '/api/voice/status' && req.method === 'GET') return respond(res, 200, { available: await voiceModelAvailable(), engine: 'whisper.cpp', model: 'tiny' });
+      if (url.pathname === '/api/transcribe' && req.method === 'POST') {
+        const chunks = []; let size = 0;
+        for await (const chunk of req) { size += chunk.length; if (size > 2 * 1024 * 1024) return respond(res, 413, { error: 'voice_too_large' }); chunks.push(chunk); }
+        try { return respond(res, 200, await transcribeAudio(Buffer.concat(chunks), url.searchParams.get('locale'))); }
+        catch (error) { return respond(res, error.status || 503, { error: error.message || 'voice_unavailable' }); }
+      }
       if (url.pathname === '/api/chat' && req.method === 'POST') {
         const body = await bodyOf(req); const locale = body.locale === 'en' ? 'en' : 'ru';
         if (!validChatMessages(body.messages)) return respond(res, 400, { error: locale === 'en' ? 'Enter a message of up to 2,000 characters.' : 'Введите сообщение длиной до 2 000 символов.' });

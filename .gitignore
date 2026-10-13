@@ -4,3 +4,4 @@
 node_modules/
 .pnpm-store/
 *.log
+.local-voice/

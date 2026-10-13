@@ -75,6 +75,30 @@ test('public knowledge contains Russian and English clinic information', async (
   assert.ok(knowledge.services.every(service => service.name_en && service.description_en));
 });
 
+test('local speech route reports engine status and rejects malformed audio', async () => {
+  const status = await fetch(`${baseUrl}/api/voice/status`);
+  const voice = await status.json();
+  assert.equal(status.status, 200);
+  assert.equal(voice.engine, 'whisper.cpp');
+  assert.equal(voice.model, 'tiny');
+  assert.equal(typeof voice.available, 'boolean');
+
+  const invalid = await fetch(`${baseUrl}/api/transcribe?locale=ru`, {
+    method: 'POST', headers: { 'Content-Type': 'audio/wav' }, body: Buffer.from('not-a-wave-file')
+  });
+  assert.equal(invalid.status, 400);
+  assert.equal((await invalid.json()).error, 'voice_invalid_audio');
+
+  const silence = Buffer.alloc(44 + 16000 * 2);
+  silence.write('RIFF', 0); silence.writeUInt32LE(silence.length - 8, 4); silence.write('WAVEfmt ', 8);
+  silence.writeUInt32LE(16, 16); silence.writeUInt16LE(1, 20); silence.writeUInt16LE(1, 22);
+  silence.writeUInt32LE(16000, 24); silence.writeUInt32LE(32000, 28); silence.writeUInt16LE(2, 32);
+  silence.writeUInt16LE(16, 34); silence.write('data', 36); silence.writeUInt32LE(32000, 40);
+  const emptySpeech = await fetch(`${baseUrl}/api/transcribe?locale=ru`, { method: 'POST', headers: { 'Content-Type': 'audio/wav' }, body: silence });
+  assert.equal(emptySpeech.status, 200);
+  assert.equal((await emptySpeech.json()).transcript, '');
+});
+
 test('fallback answers the five acceptance scenarios safely', async t => {
   const cases = [
     ['cavity-treatment price', 'Сколько стоит лечение кариеса?', /7 000 ₽/],

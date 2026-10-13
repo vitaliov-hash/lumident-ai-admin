@@ -2,6 +2,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { transcribeAudio, voiceModelAvailable } from './local-stt.js';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(root, 'public');
@@ -142,6 +143,13 @@ async function liveReply(messages, locale = 'ru') {
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   if (req.method === 'GET' && url.pathname === '/api/status') return json(res, 200, { mode: key ? 'live' : 'demo' });
+  if (req.method === 'GET' && url.pathname === '/api/voice/status') return json(res, 200, { available: await voiceModelAvailable(), engine: 'whisper.cpp', model: 'tiny' });
+  if (req.method === 'POST' && url.pathname === '/api/transcribe') {
+    const chunks = []; let size = 0;
+    for await (const chunk of req) { size += chunk.length; if (size > 2 * 1024 * 1024) return json(res, 413, { error: 'voice_too_large' }); chunks.push(chunk); }
+    try { return json(res, 200, await transcribeAudio(Buffer.concat(chunks), url.searchParams.get('locale'))); }
+    catch (error) { return json(res, error.status || 503, { error: error.message || 'voice_unavailable' }); }
+  }
   if (req.method === 'GET' && url.pathname === '/api/knowledge') return json(res, 200, localClinicKnowledge);
   if (req.method === 'GET' && url.pathname === '/api/auth/me') return json(res, 200, { user: null });
   if (req.method === 'POST' && url.pathname === '/api/auth/login') return json(res, 503, { error: 'Вход администратора доступен после подключения базы данных.' });
