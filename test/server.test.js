@@ -54,7 +54,13 @@ test('visitor route opens a guest chat without sign-in or registration', async (
   const html = await response.text();
   assert.equal(response.status, 200);
   assert.match(html, /id="chat-form"/);
+  assert.match(html, /id="service-search"/);
+  assert.match(html, /type="module" src="\/app\.js"/);
   assert.doesNotMatch(html, /register|sign in|войти|регистрац/i);
+
+  const searchScript = await fetch(`${baseUrl}/service-search.js`);
+  assert.equal(searchScript.status, 200);
+  assert.match(await searchScript.text(), /export function matchesServiceQuery/);
 });
 
 test('administrator route is separate and offers no public registration', async () => {
