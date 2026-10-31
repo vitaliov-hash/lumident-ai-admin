@@ -1,3 +1,5 @@
+import { matchesServiceQuery } from './service-search.js';
+
 const form = document.querySelector('#chat-form');
 const input = document.querySelector('#question');
 const messagesEl = document.querySelector('#messages');
@@ -5,6 +7,10 @@ const modeEl = document.querySelector('#mode');
 const suggestions = document.querySelector('#suggestions');
 const languagePicker = document.querySelector('#language-switcher');
 const voiceButton = document.querySelector('#voice-input');
+const serviceSearchInput = document.querySelector('#service-search');
+const serviceSearchEmpty = document.querySelector('#service-search-empty');
+let serviceCatalog = [];
+let serviceCatalogUnavailable = false;
 let history = [];
 let busy = false;
 let locale = localStorage.getItem('lumident-locale') === 'en' ? 'en' : 'ru';
@@ -20,7 +26,7 @@ const text = {
     alwaysHere: 'Всегда на связи', heroTitle: 'Забота начинается с разговора', heroText: 'Спросите об услугах, стоимости и материалах. Цифровой администратор LumiDent поможет сориентироваться.', startChat: 'Начать диалог ↗', heroNote: 'Ответим на ваши вопросы в любое время',
     everyDay: 'Каждый день', moscow: 'Москва', address: 'ул. Сиреневая, 18', gentleCare: 'Бережный подход', treatmentPlan: 'План лечения после осмотра', chatKicker: 'ВАШ ВОПРОС — НАШ ОТВЕТ', chatTitle: 'Поговорим о вашей улыбке?', chatSubtitle: 'Узнайте об услугах и ценах клиники.', assistantName: 'Администратор LumiDent', assistantStatus: 'Готов помочь с вашим вопросом', greeting: 'Здравствуйте! Я цифровой администратор LumiDent. Расскажу об услугах и ценах. О чём хотите узнать?', now: 'Сейчас', messageLabel: 'Ваше сообщение', placeholder: 'Напишите ваш вопрос…', voiceLabel: 'Голосовой ввод', sendLabel: 'Отправить сообщение', chatNote: 'Нажмите микрофон один раз, говорите, затем нажмите ещё раз для остановки. Распознавание выполняется локально; перед отправкой проверьте текст.',
     careEveryStep: 'ЗАБОТА НА КАЖДОМ ЭТАПЕ', popularServices: 'Популярные услуги', priceNote: 'Точную стоимость врач определит после осмотра и диагностики.', closingTitle: 'Ваш путь к улыбке начинается с вопроса', writeReception: 'Написать администратору ↗', footerAbout: 'Стоматология с вниманием к каждой улыбке.', contactsTitle: 'Контакты', footerAddress: 'Москва, ул. Сиреневая, 18', footerHours: 'Ежедневно, 09:00–21:00', navigation: 'Навигация', askShort: 'Задать вопрос', footerNote: 'Информация не заменяет очную консультацию врача.',
-    serviceAsk: 'Спросить ↗', priceFrom: 'от', noServices: 'Список услуг временно недоступен.', typing: 'Печатает…', modeLive: 'AI-администратор на связи', modeDemo: 'Справочник клиники', modeUnavailable: 'Ассистент временно недоступен', sendError: 'Не удалось получить ответ. Попробуйте ещё раз.', micUnsupported: 'Запись голоса не поддерживается этим браузером.', micDenied: 'Нет доступа к микрофону. Разрешите доступ в настройках браузера.', micNoSpeech: 'Речь не распознана. Говорите после включения микрофона и нажмите ещё раз для остановки.', micNoModel: 'Локальная модель речи не установлена. Выполните pnpm voice:setup и перезапустите сервер.', micNoDevice: 'Микрофон не найден. Проверьте подключение устройства.', micFormat: 'Браузер не смог подготовить запись. Попробуйте ещё раз.', micFailed: 'Локальное распознавание не удалось. Попробуйте ещё раз.', micListening: 'Идёт запись. Нажмите микрофон ещё раз, чтобы остановить.', micProcessing: 'Распознаём локально…', dictating: 'Записываю… нажмите, чтобы остановить', speak: 'Озвучить ответ', speechUnsupported: 'Озвучка не поддерживается этим браузером.',
+    serviceAsk: 'Спросить ↗', priceFrom: 'от', noServices: 'Список услуг временно недоступен.', serviceSearchLabel: 'Поиск по услугам', serviceSearchPlaceholder: 'Например, кариес или имплантация', serviceNoResults: 'По вашему запросу ничего не найдено. Измените запрос или посмотрите весь список услуг.', typing: 'Печатает…', modeLive: 'AI-администратор на связи', modeDemo: 'Справочник клиники', modeUnavailable: 'Ассистент временно недоступен', sendError: 'Не удалось получить ответ. Попробуйте ещё раз.', micUnsupported: 'Запись голоса не поддерживается этим браузером.', micDenied: 'Нет доступа к микрофону. Разрешите доступ в настройках браузера.', micNoSpeech: 'Речь не распознана. Говорите после включения микрофона и нажмите ещё раз для остановки.', micNoModel: 'Локальная модель речи не установлена. Выполните pnpm voice:setup и перезапустите сервер.', micNoDevice: 'Микрофон не найден. Проверьте подключение устройства.', micFormat: 'Браузер не смог подготовить запись. Попробуйте ещё раз.', micFailed: 'Локальное распознавание не удалось. Попробуйте ещё раз.', micListening: 'Идёт запись. Нажмите микрофон ещё раз, чтобы остановить.', micProcessing: 'Распознаём локально…', dictating: 'Записываю… нажмите, чтобы остановить', speak: 'Озвучить ответ', speechUnsupported: 'Озвучка не поддерживается этим браузером.',
     servicesMenu: [['Консультация', 'Расскажите о консультации стоматолога'], ['Лечение кариеса', 'Сколько стоит лечение кариеса?'], ['Профессиональная гигиена', 'Сколько стоит профессиональная гигиена?'], ['Имплантация', 'Расскажите об имплантации зуба'], ['Все услуги', 'Какие услуги доступны в LumiDent?']],
     guaranteesMenu: [['Материалы', 'Какие материалы и производителей вы используете?'], ['Гарантии на работы', 'Какие гарантии есть на лечение и работы?'], ['Пломбы', 'Какие материалы вы используете для пломб и какая гарантия?']],
     mainButtons: ['Услуги', 'Гарантия', 'Записаться'], offTopic: 'ГОЛОСОВОЙ ВВОД', back: 'Назад'
@@ -30,7 +36,7 @@ const text = {
     alwaysHere: 'Here to help', heroTitle: 'Care begins with a conversation', heroText: 'Ask about treatments, prices, and materials. The LumiDent digital receptionist can help you find your way.', startChat: 'Start a chat ↗', heroNote: 'Ask us a question any time',
     everyDay: 'Every day', moscow: 'Moscow', address: '18 Sirenevaya St.', gentleCare: 'Gentle care', treatmentPlan: 'Treatment plan after examination', chatKicker: 'YOUR QUESTION — OUR ANSWER', chatTitle: 'Let’s talk about your smile', chatSubtitle: 'Learn about clinic services and prices.', assistantName: 'LumiDent Receptionist', assistantStatus: 'Ready to help with your question', greeting: 'Hello! I’m LumiDent’s digital receptionist. I can tell you about services and prices. What would you like to know?', now: 'Now', messageLabel: 'Your message', placeholder: 'Type your question…', voiceLabel: 'Voice input', sendLabel: 'Send message', chatNote: 'Click the microphone once, speak, then click again to stop. Speech is recognized locally; review the text before sending.',
     careEveryStep: 'CARE AT EVERY STEP', popularServices: 'Popular services', priceNote: 'Your dentist will confirm the exact price after an examination and diagnostics.', closingTitle: 'Your path to a smile starts with a question', writeReception: 'Message the receptionist ↗', footerAbout: 'Dentistry with care for every smile.', contactsTitle: 'Contacts', footerAddress: '18 Sirenevaya St., Moscow', footerHours: 'Daily, 09:00–21:00', navigation: 'Navigation', askShort: 'Ask a question', footerNote: 'Information is not a substitute for an in-person dental consultation.',
-    serviceAsk: 'Ask ↗', priceFrom: 'from', noServices: 'The service list is temporarily unavailable.', typing: 'Typing…', modeLive: 'AI receptionist is online', modeDemo: 'Clinic information', modeUnavailable: 'The assistant is temporarily unavailable', sendError: 'I could not get a response. Please try again.', micUnsupported: 'Audio recording is not supported in this browser.', micDenied: 'Microphone access is blocked. Allow it in your browser settings.', micNoSpeech: 'No speech was recognized. Speak after recording starts, then click again to stop.', micNoModel: 'The local speech model is missing. Run pnpm voice:setup and restart the server.', micNoDevice: 'No microphone was found. Check that a device is connected.', micFormat: 'The browser could not prepare the recording. Please try again.', micFailed: 'Local speech recognition failed. Please try again.', micListening: 'Recording. Click the microphone again to stop.', micProcessing: 'Recognizing locally…', dictating: 'Recording… click to stop', speak: 'Read answer aloud', speechUnsupported: 'Speech playback is not supported in this browser.',
+    serviceAsk: 'Ask ↗', priceFrom: 'from', noServices: 'The service list is temporarily unavailable.', serviceSearchLabel: 'Search services', serviceSearchPlaceholder: 'For example, cavity or implants', serviceNoResults: 'No services match that search. Try another term or clear the search to see all services.', typing: 'Typing…', modeLive: 'AI receptionist is online', modeDemo: 'Clinic information', modeUnavailable: 'The assistant is temporarily unavailable', sendError: 'I could not get a response. Please try again.', micUnsupported: 'Audio recording is not supported in this browser.', micDenied: 'Microphone access is blocked. Allow it in your browser settings.', micNoSpeech: 'No speech was recognized. Speak after recording starts, then click again to stop.', micNoModel: 'The local speech model is missing. Run pnpm voice:setup and restart the server.', micNoDevice: 'No microphone was found. Check that a device is connected.', micFormat: 'The browser could not prepare the recording. Please try again.', micFailed: 'Local speech recognition failed. Please try again.', micListening: 'Recording. Click the microphone again to stop.', micProcessing: 'Recognizing locally…', dictating: 'Recording… click to stop', speak: 'Read answer aloud', speechUnsupported: 'Speech playback is not supported in this browser.',
     servicesMenu: [['Consultation', 'Tell me about a dental consultation'], ['Cavity treatment', 'How much does cavity treatment cost?'], ['Professional cleaning', 'How much does professional teeth cleaning cost?'], ['Implants', 'Tell me about a dental implant'], ['All services', 'What services does LumiDent offer?']],
     guaranteesMenu: [['Materials', 'Which materials and brands do you use?'], ['Treatment warranties', 'What warranties do you offer for dental work?'], ['Fillings', 'Which filling materials do you use and what is the warranty?']],
     mainButtons: ['Services', 'Warranty', 'Appointments'], offTopic: 'VOICE INPUT', back: 'Back'
@@ -44,6 +50,8 @@ function applyLanguage() {
   document.querySelectorAll('[data-i18n]').forEach(node => { const value = dictionary[node.dataset.i18n]; if (value) node.textContent = value; });
   input.placeholder = dictionary.placeholder;
   input.setAttribute('aria-label', dictionary.messageLabel);
+  serviceSearchInput.placeholder = dictionary.serviceSearchPlaceholder;
+  serviceSearchInput.setAttribute('aria-label', dictionary.serviceSearchLabel);
   voiceButton.setAttribute('aria-label', dictating ? dictionary.dictating : dictionary.voiceLabel);
     voiceButton.title = dictating ? dictionary.dictating : dictionary.voiceLabel;
   document.querySelector('#send-message').setAttribute('aria-label', dictionary.sendLabel);
@@ -95,21 +103,43 @@ function addMessage(role, content, loading = false) {
 }
 function notice(message) { document.querySelector('#notice').textContent = message || ''; }
 async function loadServices() {
-  const container = document.querySelector('#service-grid');
   try {
     const response = await fetch('/api/knowledge', { cache: 'no-store' }); if (!response.ok) throw new Error('knowledge');
-    const data = await response.json(); container.replaceChildren();
+    const data = await response.json();
     document.querySelector('#clinic-hours').textContent = locale === 'en' ? data.hours_en || data.hours : data.hours;
-    for (const service of data.services) {
-      const card = document.createElement('article'); card.append(Object.assign(document.createElement('span'), { className: 'service-icon', textContent: '✧' }));
-      const title = document.createElement('h3'); title.textContent = locale === 'en' ? service.name_en || service.name : service.name;
-      const description = document.createElement('p'); description.textContent = locale === 'en' ? service.description_en || service.description : service.description;
-      const bottom = document.createElement('div'); bottom.className = 'service-bottom';
-      const price = document.createElement('strong'); price.textContent = service.price_from == null ? (locale === 'en' ? 'Price on request' : 'Цена уточняется') : `${text[locale].priceFrom} ${Number(service.price_from).toLocaleString(locale === 'en' ? 'en-US' : 'ru-RU')} ₽`;
-      const ask = makeButton(text[locale].serviceAsk, { question: locale === 'en' ? `Tell me about ${service.name_en || service.name}` : `Расскажите об услуге «${service.name}»` });
-      bottom.append(price, ask); card.append(title, description, bottom); container.append(card);
-    }
-  } catch { container.replaceChildren(Object.assign(document.createElement('p'), { textContent: text[locale].noServices })); }
+    serviceCatalog = Array.isArray(data.services) ? data.services : [];
+    serviceCatalogUnavailable = false;
+    renderServices();
+  } catch {
+    serviceCatalog = [];
+    serviceCatalogUnavailable = true;
+    renderServices();
+  }
+}
+function renderServices() {
+  const container = document.querySelector('#service-grid');
+  const query = serviceSearchInput.value;
+  const matches = serviceCatalog.filter(service => matchesServiceQuery(service, query));
+  container.replaceChildren();
+  serviceSearchEmpty.hidden = true;
+  if (serviceCatalogUnavailable) {
+    container.append(Object.assign(document.createElement('p'), { textContent: text[locale].noServices }));
+    return;
+  }
+  if (!matches.length) {
+    serviceSearchEmpty.textContent = text[locale].serviceNoResults;
+    serviceSearchEmpty.hidden = false;
+    return;
+  }
+  for (const service of matches) {
+    const card = document.createElement('article'); card.append(Object.assign(document.createElement('span'), { className: 'service-icon', textContent: '✧' }));
+    const title = document.createElement('h3'); title.textContent = locale === 'en' ? service.name_en || service.name : service.name;
+    const description = document.createElement('p'); description.textContent = locale === 'en' ? service.description_en || service.description : service.description;
+    const bottom = document.createElement('div'); bottom.className = 'service-bottom';
+    const price = document.createElement('strong'); price.textContent = service.price_from == null ? (locale === 'en' ? 'Price on request' : 'Цена уточняется') : `${text[locale].priceFrom} ${Number(service.price_from).toLocaleString(locale === 'en' ? 'en-US' : 'ru-RU')} ₽`;
+    const ask = makeButton(text[locale].serviceAsk, { question: locale === 'en' ? `Tell me about ${service.name_en || service.name}` : `Расскажите об услуге «${service.name}»` });
+    bottom.append(price, ask); card.append(title, description, bottom); container.append(card);
+  }
 }
 async function send(message) {
   const value = message.trim(); if (busy || !value) return;
@@ -203,6 +233,7 @@ function setupVoiceInput() {
   voiceButton.addEventListener('click', () => dictating ? stopRecording() : startRecording());
 }
 form.addEventListener('submit', event => { event.preventDefault(); send(input.value); });
+serviceSearchInput.addEventListener('input', renderServices);
 suggestions.addEventListener('click', event => {
   const button = event.target.closest('button'); if (!button) return;
   if (button.dataset.menu) return showMenu(button.dataset.menu);

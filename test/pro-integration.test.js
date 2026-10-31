@@ -4,19 +4,12 @@ import { spawn } from 'node:child_process';
 import net from 'node:net';
 import { promisify } from 'node:util';
 import { randomBytes, scrypt as scryptCallback } from 'node:crypto';
-import fs from 'node:fs';
-import path from 'node:path';
 import pg from 'pg';
 
 const { Pool } = pg;
 const scrypt = promisify(scryptCallback);
 function testDatabaseUrl() {
-  if (process.env.LUMIDENT_TEST_DATABASE_URL) return process.env.LUMIDENT_TEST_DATABASE_URL;
-  try {
-    const envFile = fs.readFileSync(path.join(process.cwd(), '.env'), 'utf8');
-    const line = envFile.split(/\r?\n/).find(value => value.startsWith('LUMIDENT_TEST_DATABASE_URL='));
-    return line?.slice('LUMIDENT_TEST_DATABASE_URL='.length).trim().replace(/^['"]|['"]$/g, '') || '';
-  } catch { return ''; }
+  return process.env.LUMIDENT_TEST_DATABASE_URL?.trim() || '';
 }
 const databaseUrl = testDatabaseUrl();
 

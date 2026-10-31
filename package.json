@@ -3,7 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "scripts": {"start": "node server.js", "test": "node --test", "admin:promote": "node pro-promote-admin.js", "voice:setup": "node scripts/setup-voice.mjs"},
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test",
+    "build": "node --check server.js && node --check pro-server.js && node --check pro-db.js && node --check local-stt.js && node --check public/app.js && node --check public/pro-app.js && node --check public/service-search.js && node --check server.ts",
+    "admin:promote": "node pro-promote-admin.js",
+    "voice:setup": "node scripts/setup-voice.mjs"
+  },
   "dependencies": {"pg": "^8.16.3"},
   "engines": {"node": ">=20"}
 }
