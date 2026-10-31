@@ -14,7 +14,7 @@ test('service search matches Russian names and descriptions without case sensiti
 });
 
 test('service search matches English names and descriptions while the Russian catalog is active', () => {
-  assert.equal(matchesServiceQuery(services[0], 'cavity treatment'), false);
+  assert.equal(matchesServiceQuery(services[0], 'cavity treatment'), true);
   assert.equal(matchesServiceQuery(services[2], 'dental implant'), true);
 });
 
